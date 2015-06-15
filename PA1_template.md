@@ -70,7 +70,13 @@ and 10765, respectively.
 
 ```r
 ActivityData$interval <- formatC(ActivityData$interval, width = 4, format = "d", flag = "0")
-ActivityData$interval <- as.POSIXct(ActivityData$interval, format="%H%M")
+ActivityData$interval_initial <- ActivityData$interval
+ActivityData$interval_initial <- 
+        as.POSIXct(paste0(ActivityData$date,ActivityData$interval,sep=" "), 
+                   format="%Y-%m-%d %H%M")
+ActivityData$interval <- 
+        as.POSIXct(ActivityData$interval, format="%H%M")
+
 StepsTimeSeries <- aggregate(ActivityData$steps, by=list(ActivityData$interval), 
                              FUN = "mean",na.rm=TRUE)
 
@@ -92,7 +98,7 @@ The total number of missing values in dataset is 2304. The total number of repor
 
 ```r
 ActivityDataReplaceNA <- ActivityData %>% 
-            group_by(interval) %>%
+            group_by(strftime(ActivityData$interval, format="%H:%M:%S")) %>%
             mutate(steps= replace(steps, is.na(steps), mean(steps, na.rm=TRUE)))
 ```
 As shown in the code, the mean for 5-minute intervals was used to fill in all of the missing values in the dataset.
@@ -113,9 +119,26 @@ Calculating mean and median of the total number of steps taken per day when the 
 
 ```r
 MeanStepsReplaceNA <- mean(StepPerDayReplaceNA$x,na.rm=FALSE)
-MedianStepsReplaceNA <- median(StepPerDayReplaceNA$x,na.rm=TRUE)
+MedianStepsReplaceNA <- median(StepPerDayReplaceNA$x,na.rm=FALSE)
 ```
 Mean and median of the total number of steps taken per day are 10766.19 and 10766.19, respectively.
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```r
+weekdays1 <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+ActivityDataReplaceNA$wDay <- c('weekend', 'weekday')[(weekdays(ActivityDataReplaceNA$interval_initial) %in% weekdays1)+1L]
+weekday_averaged <- 
+        summarise(group_by(ActivityDataReplaceNA, interval, wDay),mean=mean(steps))
+h <- ggplot(weekday_averaged, aes(interval, mean)) + geom_line() + facet_grid(. ~ wDay)
+h + scale_x_datetime(labels = date_format("%H:%M")) + xlab("Time") +
+        ylab("Average number of steps") 
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-9-1.png) 
+
+
+
+
+
